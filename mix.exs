@@ -26,7 +26,7 @@ defmodule Yookassa.MixProject do
         licenses: ["MIT"],
         links: %{
           # <-- ЗАМЕНИТЕ ЭТО
-          "GitHub" => "https://github.com/ВАШ_НИК/yookassa",
+          "GitHub" => "https://github.com/tachyon322/yookassa-elixir-api",
           "YooKassa API Docs" => "https://yookassa.ru/developers/api"
         }
       ],
@@ -36,7 +36,7 @@ defmodule Yookassa.MixProject do
         # Главный модуль, с которого начнется документация
         main: "Yookassa",
         # <-- И ЭТО ТОЖЕ
-        source_url: "https://github.com/ВАШ_НИК/yookassa",
+        source_url: "https://github.com/tachyon322/yookassa-elixir-api",
         extras: ["README.md"]
       ]
     ]
