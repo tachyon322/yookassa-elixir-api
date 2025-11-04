@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.1] - 2023-10-01
+## [0.1.2] - 2025-11-04
+
+### Fixed
+- Critical bug fix in client configuration handling: eliminated compile-time configuration dependencies by removing Application.compile_env! usage, now reads configuration at runtime using Application.get_env/2 in base_req/0, ensuring main project configuration is loaded; added validation that raises a clear error message if Yookassa configuration is missing.
+
+## [0.1.1] - 2025-10-01
 
 ### Added
 - Initial release of Yookassa Elixir client for API v3
