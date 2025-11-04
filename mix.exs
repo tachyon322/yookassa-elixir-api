@@ -4,7 +4,7 @@ defmodule Yookassa.MixProject do
   def project do
     [
       app: :yookassa,
-      version: "0.1.0",
+      version: "0.1.1",
       # Рекомендую снизить до ~> 1.14 для большей совместимости
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
@@ -21,7 +21,7 @@ defmodule Yookassa.MixProject do
         # ВАЖНО: папки `config` здесь нет, поэтому ваши ключи останутся у вас.
         files: ~w(lib .formatter.exs mix.exs README* LICENSE*),
         # <-- ЗАМЕНИТЕ ЭТО
-        maintainers: ["Ваше Имя или Никнейм"],
+        maintainers: ["tachyon322"],
         # Убедитесь, что у вас есть файл LICENSE с текстом лицензии MIT
         licenses: ["MIT"],
         links: %{
@@ -45,7 +45,6 @@ defmodule Yookassa.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {Yookassa.Application, []}
     ]
   end
 

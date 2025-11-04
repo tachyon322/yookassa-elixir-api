@@ -22,7 +22,8 @@ Add the following to your `config/config.exs`:
 config :yookassa,
   api_url: "https://api.yookassa.ru/v3",
   shop_id: "your_shop_id",
-  secret_key: "your_secret_key"
+  secret_key: "your_secret_key",
+  webhook_port: 4545
 ```
 
 ## Usage
@@ -74,7 +75,7 @@ The library includes a built-in webhook handler that listens for YooKassa notifi
 - `refund.succeeded`: Refund completed successfully
 - `refund.canceled`: Refund was canceled
 
-The webhook server runs on port 4000 by default and logs events to the console. In production, replace the logging with your business logic.
+The webhook server runs on port 4545 by default (configurable via `:webhook_port` in config) and logs events to the console. In production, replace the logging with your business logic.
 
 ## API Reference
 
