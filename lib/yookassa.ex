@@ -127,6 +127,10 @@ defmodule Yookassa do
 
   ## Parameters
     - `payment_id`: Payment ID in `waiting_for_capture` status.
+
+  ## Example
+
+      Yookassa.cancel_payment("21740069-...")
   """
   def cancel_payment(payment_id) do
     # Request body for cancellation is always empty
@@ -145,6 +149,10 @@ defmodule Yookassa do
   @doc """
   Gets information about a specific payment by its ID.
   Returns a Payment struct.
+
+  ## Example
+
+      Yookassa.get_payment_info("21740069-...")
   """
   def get_payment_info(payment_id) do
     # We use Client, but now for a GET request
@@ -198,6 +206,10 @@ defmodule Yookassa do
   @doc """
   Gets information about a specific refund by its ID.
   Returns a Refund struct.
+
+  ## Example
+
+      Yookassa.get_refund_info("rfnd_1234567890")
   """
   def get_refund_info(refund_id) do
     with {:ok, response} <- Yookassa.Client.get("/refunds/#{refund_id}"),

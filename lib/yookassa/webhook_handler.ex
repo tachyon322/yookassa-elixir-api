@@ -1,33 +1,51 @@
 defmodule Yookassa.WebhookHandler do
   @moduledoc """
-  Webhook handler for processing YooKassa notifications.
+  A Plug router for processing incoming webhook notifications from YooKassa.
 
-  This module implements a Plug-based web server that listens for webhook notifications
-  from YooKassa. It handles various payment and refund events, logging them to the console.
-  The handler responds with HTTP 200 OK to acknowledge receipt of notifications.
+  This module provides a pre-built handler that can parse and react to various
+  payment and refund events sent by YooKassa. By default, it simply logs the
+  event information to the console, but it is designed to be extended or used as
+  a template for your own business logic.
+
+  ## Integration
+
+  This handler is a standard Plug and does **not** start its own web server.
+  You are responsible for integrating it into your application's supervision tree
+  with a web server like `Plug.Cowboy` or into your Phoenix application's router.
+
+  ### Example with Plug.Cowboy
+
+  When using `Plug.Cowboy`, this handler will respond to any POST request path that
+  matches a route defined inside, like `post "/webhook"`.
+
+  1.  **Add to your `application.ex`:**
+      ```elixir
+      children = [
+        {Plug.Cowboy, scheme: :http, plug: Yookassa.WebhookHandler, options: [port: 8080]}
+      ]
+      ```
+  2.  **Configure YooKassa Webhook URL:**
+      `https://your-ngrok-or-domain.com/webhook`
+
+  ### Example with Phoenix Router
+
+  In Phoenix, you define the path explicitly.
+
+  1.  **Add to your `router.ex`:**
+      ```elixir
+      # lib/my_app_web/router.ex
+      post "/yookassa_notifications", to: Yookassa.WebhookHandler
+      ```
+  2.  **Configure YooKassa Webhook URL:**
+      `https://your-domain.com/yookassa_notifications`
 
   ## Supported Events
 
-  The handler processes the following webhook events:
-
-    - `payment.succeeded`: Payment completed successfully
-    - `payment.canceled`: Payment was canceled
-    - `payment.waiting_for_capture`: Payment is waiting for capture (two-stage payments)
-    - `payment.pending`: Payment is pending processing
-    - `refund.succeeded`: Refund completed successfully
-    - `refund.canceled`: Refund was canceled
-
-  ## Configuration
-
-  The webhook endpoint is available at `/webhook` and expects POST requests with JSON payloads
-  containing the event data. The server runs on port 4000 by default.
-
-  ## Usage
-
-  This module is automatically started as part of the application supervision tree.
-  Webhook notifications are logged to the console for monitoring and debugging purposes.
-  In a production environment, you would typically replace the IO.puts calls with proper
-  business logic to handle each event type.
+  This handler can parse and log the following events:
+    - `payment.succeeded`
+    - `payment.canceled`
+    - `payment.waiting_for_capture`
+    - `refund.succeeded`
   """
 
   # Use Plug.Router for simple routing
@@ -39,30 +57,6 @@ defmodule Yookassa.WebhookHandler do
   plug(Plug.Parsers, parsers: [:json], json_decoder: Jason)
   plug(:dispatch)
 
-  # Listen for POST requests at /webhook
-  # Handles POST requests to the /webhook endpoint.
-  #
-  # This function processes webhook notifications from YooKassa, logging different
-  # types of payment and refund events to the console. It responds with HTTP 200 OK
-  # to acknowledge receipt of the notification.
-  #
-  # ## Parameters
-  #
-  #   - `conn`: The Plug connection containing the webhook payload
-  #
-  # ## Supported Events
-  #
-  # The handler recognizes and logs the following events:
-  # - `payment.succeeded`: Successful payment completion
-  # - `payment.canceled`: Payment cancellation
-  # - `payment.waiting_for_capture`: Payment awaiting capture (two-stage)
-  # - `payment.pending`: Payment in pending state
-  # - `refund.succeeded`: Successful refund completion
-  # - `refund.canceled`: Refund cancellation with details
-  #
-  # ## Response
-  #
-  # Always returns HTTP 200 OK with "OK" body to acknowledge the webhook.
   post "/webhook" do
     # conn.body_params will contain data from YooKassa
     body = conn.body_params
@@ -73,13 +67,9 @@ defmodule Yookassa.WebhookHandler do
         IO.puts("===== 🔔 PAYMENT SUCCEEDED! =====")
         IO.puts("Payment ID: #{payment_id}, Status: #{status}")
 
-      # Handle successful payment (final status)
-
       %{"event" => "payment.canceled", "object" => %{"id" => payment_id, "status" => status}} ->
         IO.puts("===== ❌ PAYMENT CANCELED! =====")
         IO.puts("Payment ID: #{payment_id}, Status: #{status}")
-
-      # Handle canceled payment (final status)
 
       %{
         "event" => "payment.waiting_for_capture",
@@ -88,13 +78,9 @@ defmodule Yookassa.WebhookHandler do
         IO.puts("===== ⏳ PAYMENT WAITING FOR CAPTURE! =====")
         IO.puts("Payment ID: #{payment_id}, Status: #{status}")
 
-      # Handle payment waiting for capture (two-stage payment)
-
       %{"event" => "payment.pending", "object" => %{"id" => payment_id, "status" => status}} ->
         IO.puts("===== 🕒 PAYMENT PENDING! =====")
         IO.puts("Payment ID: #{payment_id}, Status: #{status}")
-
-      # Handle pending payment (can transition to succeeded, waiting_for_capture, or canceled)
 
       %{
         "event" => "refund.succeeded",
@@ -102,8 +88,6 @@ defmodule Yookassa.WebhookHandler do
       } ->
         IO.puts("===== 💰 REFUND SUCCEEDED! =====")
         IO.puts("Refund ID: #{refund_id}, Payment ID: #{payment_id}, Status: #{status}")
-
-      # Handle successful refund
 
       %{
         "event" => "refund.canceled",
@@ -117,8 +101,6 @@ defmodule Yookassa.WebhookHandler do
         IO.puts("===== 🚫 REFUND CANCELED! =====")
         IO.puts("Refund ID: #{refund_id}, Payment ID: #{payment_id}, Status: #{status}")
         IO.inspect(cancellation_details)
-
-      # Handle canceled refund with cancellation details
 
       %{"event" => event, "object" => %{"id" => id, "status" => status}} ->
         IO.puts("===== ℹ️ NOTIFICATION RECEIVED: #{event} =====")
