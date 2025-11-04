@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for creating, capturing, canceling payments
 - Support for creating and retrieving refunds
 - Built-in webhook handler for payment and refund events
-- Configurable webhook port (default: 4545)
 
 ### Changed
 - Updated README.md with webhook port configuration details
