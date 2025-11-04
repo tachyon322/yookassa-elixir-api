@@ -9,7 +9,7 @@ If [available in Hex](https://hex.pm/docs/publish), the package can be installed
 ```elixir
 def deps do
   [
-    {:yookassa, "~> 0.1.0"}
+    {:yookassa, "~> 0.1.2"}
   ]
 end
 ```
