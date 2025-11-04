@@ -1,10 +1,18 @@
-# Yookassa
+# Yookassa Elixir Client
 
-An Elixir client for the YooKassa API v3. This library provides a simple and convenient way to integrate YooKassa payment processing into your Elixir applications, supporting payments, refunds, and webhook notifications.
+An idiomatic Elixir client for the YooKassa API v3. This library provides a simple and convenient way to integrate YooKassa payment processing into your Elixir applications.
+
+## Features
+
+- Create one-stage and two-stage payments.
+- Capture or cancel authorized payments.
+- Create full and partial refunds.
+- Get details for any payment or refund.
+- Includes a ready-to-use Plug for handling webhook notifications.
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed by adding `yookassa` to your list of dependencies in `mix.exs`:
+Add `yookassa` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
@@ -14,82 +22,102 @@ def deps do
 end
 ```
 
+Then, run `mix deps.get`.
+
 ## Configuration
 
-Add the following to your `config/config.exs`:
+Add the following configuration to your `config/dev.exs` (for development) or `config/releases.exs` (for production). Using environment variables for secrets is highly recommended.
 
 ```elixir
+# in config/dev.exs
+import Config
+
 config :yookassa,
-  api_url: "https://api.yookassa.ru/v3",
-  shop_id: "your_shop_id",
-  secret_key: "your_secret_key",
+  shop_id: "YOUR_SHOP_ID",
+  secret_key: "YOUR_TEST_SECRET_KEY",
+  api_url: "https://api.yookassa.ru/v3"
+
+# Recommended for production:
+# config :yookassa,
+#   shop_id: System.get_env("YOOKASSA_SHOP_ID"),
+#   secret_key: System.get_env("YOOKASSA_SECRET_KEY"),
+#   api_url: "https://api.yookassa.ru/v3"
 ```
 
 ## Usage
 
+All functions return `{:ok, result}` on success or `{:error, reason}` on failure.
+
 ### Creating a Payment
 
+By default, payments are one-stage (funds are captured immediately).
+
 ```elixir
-{:ok, payment} = Yookassa.create_payment("100.00", "RUB", "https://example.com/return", "Order #123")
+Yookassa.create_payment("199.50", "RUB", "https://example.com/thanks", "Order #72")
 ```
 
-### Capturing a Payment (for two-stage payments)
+### Two-Stage Payments
+
+To create a two-stage payment, pass the `capture: false` option. This will authorize the amount on the user's card without charging it.
 
 ```elixir
-{:ok, captured} = Yookassa.capture_payment("payment_id")
-```
+# Step 1: Authorize the payment
+{:ok, payment} = Yookassa.create_payment("500.00", "RUB", "https://example.com/hold", "Table reservation", capture: false)
+payment_id = payment["id"]
 
-### Canceling a Payment
+# After the user pays, the status will be "waiting_for_capture".
+# You can now either capture or cancel this payment.
 
-```elixir
-{:ok, canceled} = Yookassa.cancel_payment("payment_id")
+# Step 2 (Option A): Capture the payment to charge the card
+{:ok, captured_payment} = Yookassa.capture_payment(payment_id)
+
+# Step 2 (Option B): Cancel the authorization
+{:ok, canceled_payment} = Yookassa.cancel_payment(payment_id)
 ```
 
 ### Creating a Refund
 
-```elixir
-{:ok, refund} = Yookassa.create_refund("payment_id", "50.00", "RUB")
-```
-
-### Retrieving Payment Information
+You can only refund payments with a `succeeded` status.
 
 ```elixir
-{:ok, payment_info} = Yookassa.get_payment_info("payment_id")
+{:ok, refund} = Yookassa.create_refund("succeeded_payment_id", "50.00", "RUB")
 ```
 
-### Retrieving Refund Information
+### Getting Information
 
 ```elixir
-{:ok, refund_info} = Yookassa.get_refund_info("refund_id")
+# Get details about a specific payment
+{:ok, payment_info} = Yookassa.get_payment_info("any_payment_id")
+
+# Get details about a specific refund
+{:ok, refund_info} = Yookassa.get_refund_info("any_refund_id")
 ```
 
-## Webhook Handling
+## Handling Webhooks (Optional)
 
-The library includes a built-in webhook handler that listens for YooKassa notifications on `/webhook`. It supports the following events:
+This library provides a `Yookassa.WebhookHandler` Plug to process incoming notifications. **This library does not start a web server for you.** You are responsible for integrating the handler into your own application.
 
-- `payment.succeeded`: Payment completed successfully
-- `payment.canceled`: Payment was canceled
-- `payment.waiting_for_capture`: Payment is waiting for capture (two-stage payments)
-- `payment.pending`: Payment is pending processing
-- `refund.succeeded`: Refund completed successfully
-- `refund.canceled`: Refund was canceled
+### Example with Plug and Cowboy
 
-The webhook server runs on port 4545 by default (configurable via `:webhook_port` in config) and logs events to the console. In production, replace the logging with your business logic.
+1.  Add `:plug_cowboy` to your dependencies in `mix.exs`.
+2.  Add the server to your supervision tree in `lib/my_app/application.ex`. You can choose any port.
 
-## API Reference
+    ```elixir
+    def start(_type, _args) do
+      children = [
+        # ... your other application processes ...
+        {Plug.Cowboy, scheme: :http, plug: Yookassa.WebhookHandler, options: [port: 8080]}
+      ]
+      Supervisor.start_link(children, opts)
+    end
+    ```
+3.  Set your YooKassa Webhook URL to: `https://your-domain.com/webhook`
 
-### Payment Functions
+### Example with Phoenix Framework
 
-- [`create_payment/5`](lib/yookassa.ex:52:52): Creates a new payment with specified parameters.
-- [`capture_payment/2`](lib/yookassa.ex:106:106): Confirms capture of an authorized payment.
-- [`cancel_payment/1`](lib/yookassa.ex:131:131): Cancels a payment waiting for capture.
-- [`get_payment_info/1`](lib/yookassa.ex:149:149): Retrieves information about a specific payment.
+1.  Add the route to your `lib/my_app_web/router.ex`. You can choose any path.
 
-### Refund Functions
-
-- [`create_refund/3`](lib/yookassa.ex:177:177): Creates a refund for a payment.
-- [`get_refund_info/1`](lib/yookassa.ex:202:202): Retrieves information about a specific refund.
-
-## Error Handling
-
-All functions return `{:ok, result}` on success or `{:error, details}` on failure. Error details include HTTP status codes and messages from the YooKassa API.
+    ```elixir
+    post "/yookassa_notifications", to: Yookassa.WebhookHandler
+    ```
+2.  Set your YooKassa Webhook URL to: `https://your-domain.com/yookassa_notifications`
