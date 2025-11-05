@@ -17,7 +17,7 @@ Add `yookassa` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:yookassa, "~> 0.1.2"}
+    {:yookassa, "~> 0.1.3"}
   ]
 end
 ```
