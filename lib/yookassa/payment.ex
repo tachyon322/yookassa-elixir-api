@@ -28,7 +28,19 @@ defmodule Yookassa.Payment do
   """
 
   @enforce_keys [:id, :status, :amount, :paid]
-  defstruct [:id, :status, :amount, :paid, :created_at, :description, :confirmation, :test, :refunded_amount, :receipt_registration, :metadata]
+  defstruct [
+    :id,
+    :status,
+    :amount,
+    :paid,
+    :created_at,
+    :description,
+    :confirmation,
+    :test,
+    :refunded_amount,
+    :receipt_registration,
+    :metadata
+  ]
 
   @doc """
   Creates a Payment struct from a map received from the YooKassa API.
@@ -52,22 +64,24 @@ defmodule Yookassa.Payment do
   """
   def from_map(%{} = map) do
     # Convert keys from strings to atoms if they match struct fields
-    atomized_map = for {key, val} <- map, into: %{} do
-      case key do
-        "id" -> {:id, val}
-        "status" -> {:status, val}
-        "amount" -> {:amount, val}
-        "paid" -> {:paid, val}
-        "created_at" -> {:created_at, val}
-        "description" -> {:description, val}
-        "confirmation" -> {:confirmation, val}
-        "test" -> {:test, val}
-        "refunded_amount" -> {:refunded_amount, val}
-        "receipt_registration" -> {:receipt_registration, val}
-        "metadata" -> {:metadata, val}
-        _ -> {String.to_atom(key), val}
+    atomized_map =
+      for {key, val} <- map, into: %{} do
+        case key do
+          "id" -> {:id, val}
+          "status" -> {:status, val}
+          "amount" -> {:amount, val}
+          "paid" -> {:paid, val}
+          "created_at" -> {:created_at, val}
+          "description" -> {:description, val}
+          "confirmation" -> {:confirmation, val}
+          "test" -> {:test, val}
+          "refunded_amount" -> {:refunded_amount, val}
+          "receipt_registration" -> {:receipt_registration, val}
+          "metadata" -> {:metadata, val}
+          _ -> {String.to_atom(key), val}
+        end
       end
-    end
+
     struct(__MODULE__, atomized_map)
   end
 end

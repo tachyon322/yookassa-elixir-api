@@ -24,7 +24,15 @@ defmodule Yookassa.Refund do
   """
 
   @enforce_keys [:id, :status, :amount, :payment_id, :created_at]
-  defstruct [:id, :status, :amount, :payment_id, :created_at, :cancellation_details, :refund_authorization_details]
+  defstruct [
+    :id,
+    :status,
+    :amount,
+    :payment_id,
+    :created_at,
+    :cancellation_details,
+    :refund_authorization_details
+  ]
 
   @doc """
   Creates a Refund struct from a map received from the YooKassa API.
@@ -48,18 +56,20 @@ defmodule Yookassa.Refund do
   """
   def from_map(%{} = map) do
     # Convert keys from strings to atoms if they match struct fields
-    atomized_map = for {key, val} <- map, into: %{} do
-      case key do
-        "id" -> {:id, val}
-        "status" -> {:status, val}
-        "amount" -> {:amount, val}
-        "payment_id" -> {:payment_id, val}
-        "created_at" -> {:created_at, val}
-        "cancellation_details" -> {:cancellation_details, val}
-        "refund_authorization_details" -> {:refund_authorization_details, val}
-        _ -> {String.to_atom(key), val}
+    atomized_map =
+      for {key, val} <- map, into: %{} do
+        case key do
+          "id" -> {:id, val}
+          "status" -> {:status, val}
+          "amount" -> {:amount, val}
+          "payment_id" -> {:payment_id, val}
+          "created_at" -> {:created_at, val}
+          "cancellation_details" -> {:cancellation_details, val}
+          "refund_authorization_details" -> {:refund_authorization_details, val}
+          _ -> {String.to_atom(key), val}
+        end
       end
-    end
+
     struct(__MODULE__, atomized_map)
   end
 end
