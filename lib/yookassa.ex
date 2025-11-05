@@ -55,13 +55,13 @@ defmodule Yookassa do
     - `description`: A short description of the payment shown to the user.
     - `opts`: A keyword list of optional parameters, such as `:capture` or `:metadata`.
 
-  ## Example
+  ## Examples
 
-    # Create a standard one-stage payment
-    Yookassa.create_payment("199.50", "RUB", "https://example.com/thanks", "Order №72")
+      # Create a standard one-stage payment
+      Yookassa.create_payment("199.50", "RUB", "https://example.com/thanks", "Order №72")
 
-    # Create a two-stage payment (authorize only)
-    Yookassa.create_payment("199.50", "RUB", "https://example.com/thanks", "Order №72", capture: false)
+      # Create a two-stage payment (authorize only)
+      Yookassa.create_payment("199.50", "RUB", "https://example.com/thanks", "Order №72", capture: false)
   """
   def create_payment(value, currency, return_url, description, opts \\ []) do
     # 1. Assemble the basic request structure from required arguments
@@ -101,27 +101,23 @@ defmodule Yookassa do
   end
 
   @doc """
-  Creates a new payment.
+  Captures a payment that is in `waiting_for_capture` status.
 
-  This function constructs and sends a request to create a new payment with the
-  specified amount, currency, and confirmation details. By default, payments are
-  created with `capture` set to `true`.
+  This function sends a request to capture the full amount or a specified partial amount
+  of an authorized payment. If no amount is provided, the full authorized amount is captured.
 
   ## Parameters
 
-    - `value`: The payment amount, provided as a string or number (e.g., "100.00" or 100).
-    - `currency`: The three-letter currency code (e.g., "RUB").
-    - `return_url`: The URL to redirect the user to after payment confirmation.
-    - `description`: A short description of the payment shown to the user.
-    - `opts`: A keyword list of optional parameters, such as `:capture` or `:metadata`.
+    - `payment_id`: The ID of the payment to capture.
+    - `opts`: A keyword list of optional parameters, such as `:amount` for partial capture.
 
   ## Examples
 
-      # Create a standard one-stage payment
-      Yookassa.create_payment("199.50", "RUB", "https://example.com/thanks", "Order №72")
+      # Capture the full amount of a payment
+      Yookassa.capture_payment("21740069-...")
 
-      # Create a two-stage payment (authorize only)
-      Yookassa.create_payment("199.50", "RUB", "https://example.com/thanks", "Order №72", capture: false)
+      # Capture a partial amount
+      Yookassa.capture_payment("21740069-...", amount: 100.00)
   """
   def capture_payment(payment_id, opts \\ []) do
     body =
