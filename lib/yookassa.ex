@@ -69,7 +69,9 @@ defmodule Yookassa do
     #    Map.new() converts [capture: true] to %{"capture" => true}
     #    Map.merge() overlays options on top of base parameters.
     #    If opts contains "description", it will overwrite the base one.
-    final_params = Map.merge(base_params, Map.new(opts))
+    user_opts = for {key, val} <- opts, into: %{}, do: {to_string(key), val}
+
+    final_params = Map.merge(base_params, user_opts)
 
     # 3. Call our client with the final set of parameters
     with {:ok, response} <- Client.post("/payments", final_params),
@@ -90,22 +92,40 @@ defmodule Yookassa do
   If the payment was created with `capture: false`, this function initiates the actual
   debiting of money from the user's account.
 
-  ## Parameters
-    - `payment_id`: Payment ID in `waiting_for_capture` status.
-    - `opts`: Optional options. You can pass `amount: %{...}` for partial capture.
-      If no options are passed, the full payment amount is captured.
+  By default (if no `opts` are provided), it captures the **full amount** of the payment.
 
-  ## Example
-      # Capture the full amount
+  ## Parameters
+    - `payment_id`: The ID of the payment in `waiting_for_capture` status.
+    - `opts` (optional): A keyword list of options. To capture a partial amount,
+      provide the `:amount` key with a map containing `:value` and `:currency`.
+
+  ## Examples
+
+      # Capture the full amount of the payment
       Yookassa.capture_payment("21740069-...")
 
       # Capture a partial amount
-      amount_to_capture = %{"value" => "50.00", "currency" => "RUB"}
-      Yookassa.capture_payment("21740069-...", amount: amount_to_capture)
+      partial_amount_map = %{"value" => "50.00", "currency" => "RUB"}
+      Yookassa.capture_payment("21740069-...", amount: partial_amount_map)
   """
   def capture_payment(payment_id, opts \\ []) do
-    # YooKassa API requires passing a request body, even if it's empty
-    body = Keyword.get(opts, :amount, %{})
+    # Determine the request body based on the :amount option
+    body =
+      case Keyword.get(opts, :amount) do
+        # If no :amount is given, send an empty JSON object `{}`
+        # to capture the full payment amount.
+        nil ->
+          %{}
+
+        # If an :amount map is provided, wrap it in the expected structure.
+        # e.g., amount: %{"value" => "50.00", ...} becomes %{"amount" => %{"value" => ...}}
+        amount_map when is_map(amount_map) ->
+          %{"amount" => amount_map}
+
+        # As a safeguard, if :amount is not a map, ignore it and capture the full amount.
+        _ ->
+          %{}
+      end
 
     with {:ok, response} <- Client.post("/payments/#{payment_id}/capture", body),
          %Req.Response{status: 200, body: body} <- response do
