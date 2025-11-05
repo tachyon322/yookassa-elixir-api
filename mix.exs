@@ -50,7 +50,7 @@ defmodule Yookassa.MixProject do
       {:req, "~> 0.4"},
       {:jason, "~> 1.4"},
       {:uuid, "~> 1.1"},
-      {:plug_cowboy, "~> 2.7"},
+      {:plug_cowboy, "~> 2.7", optional: true},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false}
     ]
   end

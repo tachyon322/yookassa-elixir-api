@@ -101,28 +101,27 @@ defmodule Yookassa do
   end
 
   @doc """
-  Captures a previously authorized payment.
+  Creates a new payment.
 
-  This is used in two-stage payments to capture the funds held on the user's card.
-  If no amount is specified in the options, the full payment amount is captured.
+  This function constructs and sends a request to create a new payment with the
+  specified amount, currency, and confirmation details. By default, payments are
+  created with `capture` set to `true`.
 
   ## Parameters
-    - `payment_id`: The ID of the payment in `waiting_for_capture` status.
-    - `opts`: A keyword list of options. To capture a partial amount,
-      provide the `:amount` key with a numeric value or a map specifying
-      `"value"` and `"currency"`.
+
+    - `value`: The payment amount, provided as a string or number (e.g., "100.00" or 100).
+    - `currency`: The three-letter currency code (e.g., "RUB").
+    - `return_url`: The URL to redirect the user to after payment confirmation.
+    - `description`: A short description of the payment shown to the user.
+    - `opts`: A keyword list of optional parameters, such as `:capture` or `:metadata`.
 
   ## Examples
 
-      # Capture the full amount
-      Yookassa.capture_payment("21740069-...")
+      # Create a standard one-stage payment
+      Yookassa.create_payment("199.50", "RUB", "https://example.com/thanks", "Order №72")
 
-      # Capture a partial amount of 88.00 RUB
-      Yookassa.capture_payment("21740069-...", amount: 88)
-
-      # Capture a partial amount in a different currency
-      amount_in_usd = %{"value" => "10.00", "currency" => "USD"}
-      Yookassa.capture_payment("21740069-...", amount: amount_in_usd)
+      # Create a two-stage payment (authorize only)
+      Yookassa.create_payment("199.50", "RUB", "https://example.com/thanks", "Order №72", capture: false)
   """
   def capture_payment(payment_id, opts \\ []) do
     body =
