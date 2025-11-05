@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrected documentation formatting and improved examples in `lib/yookassa.ex`
 
 ### Changed
-- Updated version to 0.2.0 and made `plug_cowboy` dependency optional
+- Updated version to 0.1.4 and made `plug_cowboy` dependency optional
 
 ## [0.1.3] - 2025-11-05
 
