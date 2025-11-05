@@ -46,11 +46,18 @@ config :yookassa,
 
 ## Usage
 
-All functions return `{:ok, result}` on success or `{:error, reason}` on failure.
+All functions return `{:ok, response_body}` on success or `{:error, reason}` on failure.
+The `response_body` is the decoded JSON from the YooKassa API.
+
+### Idempotency
+
+All `POST` requests automatically include an `Idempotence-Key` header with a unique
+UUIDv4 value. This prevents accidental duplicate operations, ensuring that if a
+request is sent multiple times, it is processed only once.
 
 ### Creating a Payment
 
-By default, payments are one-stage (funds are captured immediately).
+By default, payments are created with `capture: true` (one-stage).
 
 ```elixir
 Yookassa.create_payment("199.50", "RUB", "https://example.com/thanks", "Order #72")

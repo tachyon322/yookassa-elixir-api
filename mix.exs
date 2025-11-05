@@ -4,38 +4,35 @@ defmodule Yookassa.MixProject do
   def project do
     [
       app: :yookassa,
-      version: "0.1.2",
-      # Рекомендую снизить до ~> 1.14 для большей совместимости
+      version: "0.1.3",
+      # Recommend setting to ~> 1.14 for broader compatibility
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
 
-      # --- НИЖЕ ИДУТ ДОБАВЛЕНИЯ ДЛЯ ПУБЛИКАЦИИ ---
+      # --- Publication Settings ---
 
-      # 1. Описание пакета, которое будет видно на Hex.pm
+      # 1. Package description for Hex.pm
       description: "An Elixir client for the YooKassa API v3.",
 
-      # 2. Главная секция для публикации.
+      # 2. Main package configuration for Hex.
       package: [
-        # Указываем, какие файлы попадут в пакет.
-        # ВАЖНО: папки `config` здесь нет, поэтому ваши ключи останутся у вас.
+        # Specify which files to include in the package.
+        # NOTE: The `config` directory is excluded, so your keys will not be published.
         files: ~w(lib .formatter.exs mix.exs README* LICENSE*),
-        # <-- ЗАМЕНИТЕ ЭТО
         maintainers: ["tachyon322"],
-        # Убедитесь, что у вас есть файл LICENSE с текстом лицензии MIT
+        # Ensure you have a LICENSE file with the MIT license text.
         licenses: ["MIT"],
         links: %{
-          # <-- ЗАМЕНИТЕ ЭТО
           "GitHub" => "https://github.com/tachyon322/yookassa-elixir-api",
           "YooKassa API Docs" => "https://yookassa.ru/developers/api"
         }
       ],
 
-      # 3. Настройки для генерации документации (mix docs)
+      # 3. Documentation generation settings (for `mix docs`)
       docs: [
-        # Главный модуль, с которого начнется документация
+        # The main module to start documentation from.
         main: "Yookassa",
-        # <-- И ЭТО ТОЖЕ
         source_url: "https://github.com/tachyon322/yookassa-elixir-api",
         extras: ["README.md"]
       ]

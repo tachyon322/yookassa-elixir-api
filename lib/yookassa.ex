@@ -1,23 +1,29 @@
 defmodule Yookassa do
   @moduledoc """
-  Main module for working with YooKassa API.
+  The main module for interacting with the YooKassa API.
 
-  This module provides high-level functions for creating payments, handling captures,
-  cancellations, and refunds through the YooKassa payment processing service.
-  It serves as the primary interface for integrating YooKassa payments into your application.
+  This module offers high-level functions for creating payments, capturing funds,
+  canceling payments, and processing refunds. It serves as the primary entry point
+  for integrating YooKassa functionality into an Elixir application.
 
   ## Configuration
 
-  Before using this module, ensure you have configured the following in your `config.exs`:
+  Before using the library, configure your credentials in `config/config.exs`:
 
       config :yookassa,
-        api_url: "https://api.yookassa.ru/v3",
-        shop_id: "your_shop_id",
-        secret_key: "your_secret_key"
+        shop_id: "your_dev_shop_id",
+        secret_key: "your_dev_secret_key",
+        api_url: "https://api.yookassa.ru/v3"
+
+  The `:shop_id` and `:secret_key` are required for authentication.
+
+  ## Idempotency
+
+  All `POST` requests automatically include an `Idempotence-Key` header with a unique
+  UUIDv4 value. This prevents accidental duplicate operations, ensuring that if a
+  request is sent multiple times, it is processed only once.
 
   ## Usage
-
-  The module provides functions for the complete payment lifecycle:
 
   - Create payments with `create_payment/5`
   - Capture authorized payments with `capture_payment/2`
@@ -27,27 +33,35 @@ defmodule Yookassa do
 
   ## Error Handling
 
-  All functions return `{:ok, result}` on success or `{:error, details}` on failure.
-  Error details include HTTP status codes and error messages from the YooKassa API.
+  All functions return `{:ok, response_body}` on success or `{:error, reason}` on failure.
+  The `response_body` is the decoded JSON from the YooKassa API. The `reason` is typically
+  a map containing the HTTP status and error details.
   """
 
   alias Yookassa.Client
 
   @doc """
-  Creates a new payment with explicitly specified parameters.
+  Creates a new payment.
+
+  This function constructs and sends a request to create a new payment with the
+  specified amount, currency, and confirmation details. By default, payments are
+  created with `capture` set to `true`.
 
   ## Parameters
 
-    - `value`: Payment amount as a string (e.g., "100.00") or number.
-    - `currency`: Three-letter currency code (e.g., "RUB").
-    - `return_url`: URL where the user will return after payment.
-    - `description`: Order description that the user will see.
-    - `opts`: List of optional parameters, such as `capture: true`, `metadata: %{...}`.
+    - `value`: The payment amount, provided as a string or number (e.g., "100.00" or 100).
+    - `currency`: The three-letter currency code (e.g., "RUB").
+    - `return_url`: The URL to redirect the user to after payment confirmation.
+    - `description`: A short description of the payment shown to the user.
+    - `opts`: A keyword list of optional parameters, such as `:capture` or `:metadata`.
 
-  ## Example call
+  ## Example
 
-      Yookassa.create_payment("199.50", "RUB", "https://example.com/thanks", "Order №72", capture: true)
+    # Create a standard one-stage payment
+    Yookassa.create_payment("199.50", "RUB", "https://example.com/thanks", "Order №72")
 
+    # Create a two-stage payment (authorize only)
+    Yookassa.create_payment("199.50", "RUB", "https://example.com/thanks", "Order №72", capture: false)
   """
   def create_payment(value, currency, return_url, description, opts \\ []) do
     # 1. Assemble the basic request structure from required arguments
@@ -87,43 +101,58 @@ defmodule Yookassa do
   end
 
   @doc """
-  Confirms the capture of a previously authorized amount (for two-stage payments).
+  Captures a previously authorized payment.
 
-  If the payment was created with `capture: false`, this function initiates the actual
-  debiting of money from the user's account.
-
-  By default (if no `opts` are provided), it captures the **full amount** of the payment.
+  This is used in two-stage payments to capture the funds held on the user's card.
+  If no amount is specified in the options, the full payment amount is captured.
 
   ## Parameters
     - `payment_id`: The ID of the payment in `waiting_for_capture` status.
-    - `opts` (optional): A keyword list of options. To capture a partial amount,
-      provide the `:amount` key with a map containing `:value` and `:currency`.
+    - `opts`: A keyword list of options. To capture a partial amount,
+      provide the `:amount` key with a numeric value or a map specifying
+      `"value"` and `"currency"`.
 
   ## Examples
 
-      # Capture the full amount of the payment
+      # Capture the full amount
       Yookassa.capture_payment("21740069-...")
 
-      # Capture a partial amount
-      partial_amount_map = %{"value" => "50.00", "currency" => "RUB"}
-      Yookassa.capture_payment("21740069-...", amount: partial_amount_map)
+      # Capture a partial amount of 88.00 RUB
+      Yookassa.capture_payment("21740069-...", amount: 88)
+
+      # Capture a partial amount in a different currency
+      amount_in_usd = %{"value" => "10.00", "currency" => "USD"}
+      Yookassa.capture_payment("21740069-...", amount: amount_in_usd)
   """
   def capture_payment(payment_id, opts \\ []) do
-    # Determine the request body based on the :amount option
     body =
       case Keyword.get(opts, :amount) do
-        # If no :amount is given, send an empty JSON object `{}`
-        # to capture the full payment amount.
         nil ->
           %{}
 
-        # If an :amount map is provided, wrap it in the expected structure.
-        # e.g., amount: %{"value" => "50.00", ...} becomes %{"amount" => %{"value" => ...}}
+        amount_value when is_integer(amount_value) ->
+          # Handle integer amounts
+          amount_map = %{
+            "value" => "#{amount_value}.00",
+            "currency" => "RUB"
+          }
+
+          %{"amount" => amount_map}
+
+        amount_value when is_float(amount_value) ->
+          # Handle float amounts
+          amount_map = %{
+            "value" => :erlang.float_to_binary(amount_value, decimals: 2),
+            "currency" => "RUB"
+          }
+
+          %{"amount" => amount_map}
+
         amount_map when is_map(amount_map) ->
           %{"amount" => amount_map}
 
-        # As a safeguard, if :amount is not a map, ignore it and capture the full amount.
         _ ->
+          IO.warn("Invalid `:amount` option in capture_payment/2. Capturing full amount.")
           %{}
       end
 
@@ -140,13 +169,13 @@ defmodule Yookassa do
   end
 
   @doc """
-  Cancels a payment waiting for capture (in `waiting_for_capture` status).
+  Cancels a payment that is in `waiting_for_capture` status.
 
-  Funds blocked on the user's card will be unblocked.
-  This is not a refund, as no capture has occurred yet.
+  This action releases the hold on the user's funds. It is not a refund, as
+  the funds were never captured.
 
   ## Parameters
-    - `payment_id`: Payment ID in `waiting_for_capture` status.
+    - `payment_id`: The ID of the payment to be canceled.
 
   ## Example
 
@@ -167,12 +196,16 @@ defmodule Yookassa do
   end
 
   @doc """
-  Gets information about a specific payment by its ID.
-  Returns a Payment struct.
+  Retrieves information about a specific payment.
+
+  Returns a `Yookassa.Payment` struct on success.
+
+  ## Parameters
+    - `payment_id`: The ID of the payment to retrieve.
 
   ## Example
 
-      Yookassa.get_payment_info("21740069-...")
+      {:ok, payment} = Yookassa.get_payment_info("21740069-...")
   """
   def get_payment_info(payment_id) do
     # We use Client, but now for a GET request
@@ -189,18 +222,24 @@ defmodule Yookassa do
   end
 
   @doc """
-  Creates a payment refund.
+  Creates a refund for a successful payment.
 
   ## Parameters
 
-    - `payment_id`: Payment ID for which the refund is being created.
-    - `value`: Refund amount as a string (e.g., "100.00") or number.
-    - `currency`: Three-letter currency code (e.g., "RUB").
+    - `payment_id`: The ID of the payment to be refunded.
+    - `value`: The refund amount, as a string or number.
+    - `currency`: The three-letter currency code.
 
-  ## Example call
+  ## Example
 
-      Yookassa.create_refund("21740069-000f-50be-b000-0486ffbf45b0", "2.00", "RUB")
+      Yookassa.create_refund("21740069-...", "50.00", "RUB")
 
+
+  ## Notes
+
+  The YooKassa API has certain business rules for refunds:
+  - The decimal separator for the `value` must be a dot (`.`), not a comma.
+  - After a partial refund, the remaining amount on the payment must be at least 1 RUB.
   """
   def create_refund(payment_id, value, currency) do
     params = %{
@@ -224,12 +263,16 @@ defmodule Yookassa do
   end
 
   @doc """
-  Gets information about a specific refund by its ID.
-  Returns a Refund struct.
+  Retrieves information about a specific refund.
+
+  Returns a `Yookassa.Refund` struct on success.
+
+  ## Parameters
+    - `refund_id`: The ID of the refund to retrieve.
 
   ## Example
 
-      Yookassa.get_refund_info("rfnd_1234567890")
+      {:ok, refund} = Yookassa.get_refund_info("rfnd_1234567890")
   """
   def get_refund_info(refund_id) do
     with {:ok, response} <- Yookassa.Client.get("/refunds/#{refund_id}"),
